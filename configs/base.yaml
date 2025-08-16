@@ -1,0 +1,61 @@
+name: "Azure OpenAI Proxy"
+version: "1.0.0"
+port: 8080
+
+routing:
+  strategy: "weighted"  # failover, weighted, round_robin
+  retries: 3
+  timeout: 30
+
+logging:
+  level: "INFO"
+  file: "logs/proxy.log"
+  max_size: 100
+  backup_count: 5
+
+monitoring:
+  stats_window_minutes: 5
+  additional_windows: [15, 60]
+
+instances:
+  - name: "azure-primary"
+    provider_type: "azure"
+    api_key: "${AZURE_API_KEY_PRIMARY}"
+    api_base: "${AZURE_API_BASE_PRIMARY}"
+    api_version: "2024-05-01-preview"
+    priority: 1
+    weight: 10
+    max_tpm: 60000
+    max_input_tokens: 8000
+    supported_models:
+      - "gpt-4"
+      - "gpt-4o"
+      - "gpt-35-turbo"
+    model_deployments:
+      "gpt-4": "gpt-4-deployment"
+      "gpt-4o": "gpt-4o-deployment"
+      "gpt-35-turbo": "gpt-35-turbo-deployment"
+    enabled: true
+    timeout_seconds: 30.0
+    retry_count: 3
+    rate_limit_enabled: true
+
+  - name: "azure-secondary"
+    provider_type: "azure"
+    api_key: "${AZURE_API_KEY_SECONDARY}"
+    api_base: "${AZURE_API_BASE_SECONDARY}"
+    api_version: "2024-05-01-preview"
+    priority: 2
+    weight: 5
+    max_tpm: 30000
+    max_input_tokens: 8000
+    supported_models:
+      - "gpt-4"
+      - "gpt-35-turbo"
+    model_deployments:
+      "gpt-4": "gpt-4-deployment"
+      "gpt-35-turbo": "gpt-35-turbo-deployment"
+    enabled: true
+    timeout_seconds: 30.0
+    retry_count: 3
+    rate_limit_enabled: true

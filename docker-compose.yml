@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # Azure OpenAI Proxy
+  proxy:
+    build: .
+    container_name: azure-openai-proxy
+    ports:
+      - "8080:8080"
+    environment:
+      - ENVIRONMENT=production
+      - REDIS_URL=redis://redis:6379
+      - AZURE_API_KEY_PRIMARY=${AZURE_API_KEY_PRIMARY}
+      - AZURE_API_BASE_PRIMARY=${AZURE_API_BASE_PRIMARY}
+      - AZURE_API_KEY_SECONDARY=${AZURE_API_KEY_SECONDARY}
+      - AZURE_API_BASE_SECONDARY=${AZURE_API_BASE_SECONDARY}
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    depends_on:
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis for state storage
+  redis:
+    image: redis:7-alpine
+    container_name: azure-openai-proxy-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: Redis Commander for Redis management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: azure-openai-proxy-redis-ui
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+
+networks:
+  default:
+    name: azure-openai-proxy-network

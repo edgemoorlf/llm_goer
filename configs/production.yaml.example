@@ -1,0 +1,32 @@
+# Production configuration overrides
+logging:
+  level: "WARN"
+  file: "/var/log/azure-openai-proxy/proxy.log"
+
+instances:
+  - name: "azure-primary"
+    max_tpm: 120000  # Higher limits in production
+    weight: 15
+
+  - name: "azure-secondary"
+    max_tpm: 60000
+    weight: 10
+
+  # Additional production instance
+  - name: "azure-tertiary"
+    provider_type: "azure"
+    api_key: "${AZURE_API_KEY_TERTIARY}"
+    api_base: "${AZURE_API_BASE_TERTIARY}"
+    api_version: "2024-05-01-preview"
+    priority: 3
+    weight: 5
+    max_tpm: 30000
+    max_input_tokens: 8000
+    supported_models:
+      - "gpt-35-turbo"
+    model_deployments:
+      "gpt-35-turbo": "gpt-35-turbo-deployment"
+    enabled: true
+    timeout_seconds: 30.0
+    retry_count: 3
+    rate_limit_enabled: true
